@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Duka POS">
+  <rect width="512" height="512" rx="96" fill="#059669" />
+  <path d="M136 176h240l-24 168a32 32 0 0 1-32 28H192a32 32 0 0 1-32-28z" fill="#ffffff" opacity="0.95" />
+  <path d="M208 208v-40a48 48 0 0 1 96 0v40" fill="none" stroke="#065f46" stroke-width="28" stroke-linecap="round" />
+</svg>

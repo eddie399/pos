@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --ring: #10b981;
 }
 
 @theme inline {
@@ -12,15 +13,38 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: auto;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/**
+ * Phone-first global polish: bigger tap targets on coarse pointers, sticky
+ * checkout bars above the tab bar, and tabular price numerals.
+ */
+@media (pointer: coarse) {
+  button,
+  a,
+  input,
+  select {
+    min-height: 2.75rem;
+  }
+
+  input,
+  select {
+    font-size: 1rem;
+  }
+}
+
+.price {
+  font-variant-numeric: tabular-nums;
 }

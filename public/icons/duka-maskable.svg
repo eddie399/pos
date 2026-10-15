@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Duka POS">
+  <!-- Maskable icon: art kept inside the safe zone (centre 80%) so Android can crop it. -->
+  <rect width="512" height="512" fill="#059669" />
+  <path d="M176 216h160l-16 112a22 22 0 0 1-22 19H214a22 22 0 0 1-22-19z" fill="#ffffff" opacity="0.95" />
+  <path d="M224 240v-27a32 32 0 0 1 64 0v27" fill="none" stroke="#065f46" stroke-width="20" stroke-linecap="round" />
+</svg>
