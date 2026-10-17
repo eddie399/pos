@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useState, type ReactNode } from "react";
 
+import BrandMark from "@/app/components/brand-mark";
 import { useOnlineStatus } from "@/app/components/use-online-status";
 
 const primaryLinks = [
@@ -19,10 +20,10 @@ const secondaryLinks = [
   { href: "/customers", label: "Customers" },
   { href: "/expenses", label: "Expenses" },
   { href: "/reports", label: "Reports" },
-  { href: "/setup-shop", label: "Settings" },
+  { href: "/settings", label: "Settings" },
 ];
 
-const shellHiddenPrefixes = ["/login", "/setup-shop"];
+const shellHiddenPrefixes = ["/login", "/setup-shop", "/receipt"];
 
 function SellIcon() {
   return (
@@ -83,10 +84,19 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const isOnline = useOnlineStatus();
 
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState("");
 
   async function handleSignOut() {
+    setSignOutError("");
     setIsSigningOut(true);
-    await signOut({ callbackUrl: "/login" });
+
+    try {
+      await signOut({ redirect: false, callbackUrl: "/login" });
+      window.location.replace("/login");
+    } catch {
+      setSignOutError("Unable to sign out. Please try again.");
+      setIsSigningOut(false);
+    }
   }
 
   if (shellHiddenPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)) || pathname === "/") {
@@ -94,7 +104,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-full">
+    <div className="min-h-full w-full min-w-0 max-w-full overflow-x-clip">
       {!isOnline ? (
         <p
           role="status"
@@ -105,14 +115,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
       ) : null}
 
       <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
+        <div className="mx-auto flex w-full min-w-0 max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:gap-3 sm:px-6">
           <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-base font-black text-white">
-              D
-            </span>
+            <BrandMark className="h-9 w-9 text-xl" />
             <span className="min-w-0">
-              <span className="block text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-600">Duka POS</span>
-              <span className="block truncate text-sm font-bold text-slate-900">Shop workspace</span>
+              <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-600 sm:text-[11px] sm:tracking-[0.2em]">Duka POS</span>
             </span>
           </Link>
 
@@ -140,12 +147,17 @@ export default function AppShell({ children }: { children: ReactNode }) {
               type="button"
               onClick={handleSignOut}
               disabled={isSigningOut}
-              className="shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
+              className="min-h-10 shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70 sm:px-3 sm:text-sm"
             >
               {isSigningOut ? "…" : "Sign out"}
             </button>
           ) : null}
         </div>
+        {signOutError ? (
+          <p role="alert" className="border-t border-red-100 bg-red-50 px-4 py-2 text-center text-xs text-red-700">
+            {signOutError}
+          </p>
+        ) : null}
 
         {/*
           Below `lg` the row above has no room for the secondary links, so they
@@ -175,10 +187,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </nav>
       </div>
 
-      <div className="pb-24 md:pb-10">{children}</div>
+      <div className="w-full min-w-0 max-w-full pb-24 md:pb-10">{children}</div>
 
-      <nav aria-label="Primary" className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-        <ul className="mx-auto grid max-w-6xl grid-cols-5">
+      <nav aria-label="Primary" className="fixed inset-x-0 bottom-0 z-40 w-full border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        <ul className="mx-auto grid w-full max-w-6xl grid-cols-5">
           {primaryLinks.map((link) => {
             const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
             const isSell = link.href === "/pos";

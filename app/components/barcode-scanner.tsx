@@ -5,10 +5,13 @@ import { useEffect, useRef, useState } from "react";
 
 type BarcodeScannerProps = {
   continuous?: boolean;
-  lastScanned?: string | null;
-  scanCount?: number;
   onDetected: (value: string) => void;
   onClose: () => void;
+};
+
+type FocusTrack = {
+  getCapabilities?: () => { focusMode?: string[] };
+  applyConstraints: (constraints: { advanced: Array<{ focusMode: string }> }) => Promise<void>;
 };
 
 /**
@@ -18,15 +21,18 @@ type BarcodeScannerProps = {
  */
 export default function BarcodeScanner({
   continuous = false,
-  lastScanned = null,
-  scanCount = 0,
   onDetected,
   onClose,
 }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const onDetectedRef = useRef(onDetected);
   const lastValueRef = useRef<{ value: string; at: number } | null>(null);
+  const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState("");
+  const [capturedBarcode, setCapturedBarcode] = useState("");
+  const [isFlashActive, setIsFlashActive] = useState(false);
+  const [showCaptureFeedback, setShowCaptureFeedback] = useState(false);
 
   useEffect(() => {
     onDetectedRef.current = onDetected;
@@ -36,6 +42,35 @@ export default function BarcodeScanner({
     const reader = new BrowserMultiFormatReader();
     let controls: IScannerControls | null = null;
     let isActive = true;
+
+    async function enableContinuousFocus(video: HTMLVideoElement) {
+      const stream = video.srcObject;
+      if (!(stream instanceof MediaStream)) return;
+
+      for (const mediaTrack of stream.getVideoTracks()) {
+        const track = mediaTrack as unknown as FocusTrack;
+        try {
+          const focusModes = track.getCapabilities?.().focusMode;
+          if (!focusModes?.includes("continuous")) continue;
+
+          await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+        } catch {
+          // Some devices advertise autofocus but reject changing it at runtime.
+        }
+      }
+    }
+
+    function showSuccessfulCapture(value: string) {
+      setCapturedBarcode(value);
+      setShowCaptureFeedback(true);
+      setIsFlashActive(true);
+
+      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+
+      feedbackTimeoutRef.current = setTimeout(() => setShowCaptureFeedback(false), 2000);
+      flashTimeoutRef.current = setTimeout(() => setIsFlashActive(false), 220);
+    }
 
     async function startScanner() {
       if (!videoRef.current) return;
@@ -63,6 +98,7 @@ export default function BarcodeScanner({
               }
 
               lastValueRef.current = { value, at: now };
+              showSuccessfulCapture(value);
 
               if (continuous) {
                 onDetectedRef.current(value);
@@ -79,6 +115,7 @@ export default function BarcodeScanner({
             }
           },
         );
+        await enableContinuousFocus(videoRef.current);
       } catch {
         setError("Camera access was denied or is unavailable on this device.");
       }
@@ -91,6 +128,8 @@ export default function BarcodeScanner({
       // Releases the camera stream that ZXing opened.
       controls?.stop();
       controls = null;
+      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
     };
   }, [continuous]);
 
@@ -109,14 +148,23 @@ export default function BarcodeScanner({
           </button>
         </div>
 
-        <div className="mt-4 overflow-hidden rounded-xl bg-slate-950">
+        <div
+          className={`relative mt-4 overflow-hidden rounded-xl bg-slate-950 transition-shadow duration-200 ${
+            isFlashActive ? "ring-4 ring-emerald-400" : ""
+          }`}
+        >
           <video ref={videoRef} className="aspect-video w-full object-cover" muted playsInline />
+          <div
+            aria-hidden="true"
+            className={`pointer-events-none absolute inset-0 bg-emerald-300 transition-opacity duration-200 ${
+              isFlashActive ? "opacity-40" : "opacity-0"
+            }`}
+          />
         </div>
 
-        {continuous && (lastScanned || scanCount > 0) ? (
+        {showCaptureFeedback ? (
           <p role="status" className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
-            {scanCount > 0 ? `${scanCount} item${scanCount === 1 ? "" : "s"} scanned` : "Ready to scan"}
-            {lastScanned ? ` · Last: ${lastScanned}` : ""}
+            Barcode captured: {capturedBarcode}
           </p>
         ) : null}
 

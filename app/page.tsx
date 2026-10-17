@@ -1,17 +1,5 @@
 import Link from "next/link";
-
-const phaseChecklist = [
-  "Project setup and architecture",
-  "Authentication and shop/user system",
-  "Database and product catalogue",
-  "POS and cart",
-  "Checkout and payments",
-  "Inventory and stock movements",
-  "Customers and credit",
-  "Sales and reports",
-  "Offline sync and PWA foundation",
-  "Security, testing, and optimization",
-];
+import BrandMark from "@/app/components/brand-mark";
 
 export default function Home() {
   return (
@@ -20,7 +8,8 @@ export default function Home() {
         <div className="rounded-3xl border border-emerald-100 bg-white p-8 shadow-sm sm:p-12">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
+              <p className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
+                <BrandMark className="h-11 w-11 text-2xl" />
                 Duka POS
               </p>
               <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
@@ -77,30 +66,6 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Phase 1</p>
-              <h2 className="mt-2 text-2xl font-bold text-slate-900">Foundation and architecture</h2>
-            </div>
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-              In progress
-            </span>
-          </div>
-
-          <ul className="mt-8 grid gap-3 md:grid-cols-2">
-            {phaseChecklist.map((item) => (
-              <li key={item} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">
-                  ✓
-                </span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
     </main>
   );
 }

@@ -17,7 +17,7 @@ const quickActions = [
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/sync", label: "Sync", icon: RefreshCw },
-  { href: "/setup-shop", label: "Settings", icon: Settings },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export default async function DashboardPage() {
@@ -104,12 +104,18 @@ export default async function DashboardPage() {
                 {recentSales.map((sale) => (
                   <li
                     key={sale.id}
-                    className="flex min-w-0 items-start gap-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-700"
+                    className="flex min-w-0 items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-700"
                   >
                     <span className="mt-1 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
-                    <span className="min-w-0 wrap-break-word">
+                    <span className="min-w-0 flex-1 wrap-break-word">
                       {sale.receiptNumber} · {sale.customerName} · {formatMoney(sale.total)}
                     </span>
+                    <Link
+                      href={`/receipt/${encodeURIComponent(sale.id)}`}
+                      className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                    >
+                      Reprint
+                    </Link>
                   </li>
                 ))}
               </ul>

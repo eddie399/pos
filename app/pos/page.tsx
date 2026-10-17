@@ -1,11 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import BarcodeScanner from "@/app/components/barcode-scanner";
 import { useBarcodeWedge } from "@/app/components/use-barcode-wedge";
-import { newId } from "@/lib/ids";
-import { submitSale, syncPendingSales, type SalePayload, type SyncResult } from "@/lib/offline-db";
+import { newId, receiptNumberFor } from "@/lib/ids";
+import {
+  deleteReceipt,
+  saveReceipt,
+  submitSale,
+  syncPendingSales,
+  type ReceiptRecord,
+  type SalePayload,
+  type SyncResult,
+} from "@/lib/offline-db";
 
 type Product = {
   id: string;
@@ -60,6 +69,7 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
 });
 
 export default function PosPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Array<{ id: string; name: string; creditLimit: string }>>([]);
   const [customerId, setCustomerId] = useState("");
@@ -71,10 +81,14 @@ export default function PosPage() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [lastScanned, setLastScanned] = useState<string | null>(null);
   const [scanCount, setScanCount] = useState(0);
+  const noticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  async function loadProducts() {
-    setProducts(await fetchProducts());
-  }
+  useEffect(
+    () => () => {
+      if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     let active = true;
@@ -170,12 +184,24 @@ export default function PosPage() {
     setScanCount(0);
   }
 
+  function showTransientNotice(message: string) {
+    if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
+    setNotice(message);
+    noticeTimeoutRef.current = setTimeout(() => setNotice(""), 2500);
+  }
+
   function handleBarcodeDetected(barcode: string) {
     const scannedProduct = products.find((product) => product.barcode?.trim() === barcode.trim());
 
     if (!scannedProduct) {
       setQuery(barcode);
       setError(`No product found for barcode ${barcode}.`);
+      return;
+    }
+
+    const existingItem = cart.find((item) => item.product.id === scannedProduct.id);
+    if (existingItem && existingItem.quantity >= scannedProduct.stockQuantity) {
+      addToCart(scannedProduct);
       return;
     }
 
@@ -192,7 +218,11 @@ export default function PosPage() {
       setLastScanned(null);
     }
 
-    setNotice(`${scannedProduct.name} added to the sale.`);
+    showTransientNotice(
+      existingItem
+        ? `${scannedProduct.name} is already in the sale. Quantity increased to ${existingItem.quantity + 1}.`
+        : `${scannedProduct.name} added to the sale.`,
+    );
   }
 
   // Hardware scanners (keyboard wedges) bypass the camera entirely and are
@@ -238,11 +268,29 @@ export default function PosPage() {
       discount: 0,
       paymentMethod: customerId ? "CREDIT" : "CASH",
     };
+    const receipt: ReceiptRecord = {
+      id: salePayload.clientRef,
+      receiptNumber: receiptNumberFor(salePayload.clientRef),
+      createdAt: Date.now(),
+      customerName: customers.find((customer) => customer.id === customerId)?.name ?? null,
+      items: cart.map(({ product, quantity }) => ({
+        name: product.name,
+        quantity,
+        unitPrice: Number(product.sellingPrice),
+        unit: product.unit,
+        total: Number(product.sellingPrice) * quantity,
+      })),
+      subtotal: cartTotal,
+      discount: 0,
+      total: cartTotal,
+    };
 
     try {
+      await saveReceipt(receipt);
       const result = await submitSale(salePayload);
 
       if (result.status === "rejected") {
+        await deleteReceipt(receipt.id);
         // The server refused the sale (stock ran out, credit limit reached,
         // session expired). Keep the cart so the cashier can correct it.
         setError(result.message);
@@ -250,14 +298,7 @@ export default function PosPage() {
       }
 
       setCart([]);
-      setNotice(
-        result.status === "synced"
-          ? `Sale completed. Receipt ${result.receiptNumber}.`
-          : `No connection. Receipt ${result.receiptNumber} is saved on this device and will sync automatically.`,
-      );
-
-      // Best effort: while offline the local product list stays as it is.
-      await loadProducts().catch(() => undefined);
+      router.push(`/receipt/${encodeURIComponent(result.clientRef)}`);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to complete the sale.");
     } finally {
@@ -465,8 +506,6 @@ export default function PosPage() {
       {isScannerOpen ? (
         <BarcodeScanner
           continuous
-          lastScanned={lastScanned}
-          scanCount={scanCount}
           onClose={closeScanner}
           onDetected={handleBarcodeDetected}
         />

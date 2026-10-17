@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import PageHeader from "@/app/components/page-header";
@@ -146,6 +147,7 @@ export default function ReportsPage() {
                   <th className="px-3 py-3">Total</th>
                   <th className="px-3 py-3">Status</th>
                   <th className="px-3 py-3">Date</th>
+                  <th className="px-3 py-3">Receipt</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -161,6 +163,14 @@ export default function ReportsPage() {
                       </span>
                     </td>
                     <td className="px-3 py-4 text-slate-600">{new Date(sale.createdAt).toLocaleDateString()}</td>
+                    <td className="px-3 py-4">
+                      <Link
+                        href={`/receipt/${encodeURIComponent(sale.id)}`}
+                        className="whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                      >
+                        Reprint
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>

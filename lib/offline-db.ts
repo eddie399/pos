@@ -38,6 +38,23 @@ export type QueuedSale = {
   payload: SalePayload;
 };
 
+export type ReceiptRecord = {
+  id: string;
+  receiptNumber: string;
+  createdAt: number;
+  customerName: string | null;
+  items: Array<{
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    unit: string;
+    total?: number;
+  }>;
+  subtotal: number;
+  discount: number;
+  total: number;
+};
+
 export type SubmitSaleResult =
   | { status: "synced"; clientRef: string; receiptNumber: string }
   | { status: "queued"; clientRef: string; receiptNumber: string }
@@ -55,6 +72,7 @@ const MAX_ATTEMPTS = 8;
 
 class DukaOfflineDb extends Dexie {
   pendingSales!: Table<QueuedSale, string>;
+  receipts!: Table<ReceiptRecord, string>;
 
   constructor() {
     super("duka-offline-db");
@@ -75,6 +93,11 @@ class DukaOfflineDb extends Dexie {
         pendingSales: "id, createdAt, status",
       })
       .upgrade((transaction) => transaction.table("pendingSales").where("status").equals("synced").delete());
+
+    this.version(3).stores({
+      pendingSales: "id, createdAt, status",
+      receipts: "id, createdAt",
+    });
   }
 }
 
@@ -97,6 +120,18 @@ export async function getPendingSales(): Promise<QueuedSale[]> {
 
 export async function discardQueuedSale(id: string): Promise<void> {
   await offlineDb.pendingSales.delete(id);
+}
+
+export async function saveReceipt(receipt: ReceiptRecord): Promise<void> {
+  await offlineDb.receipts.put(receipt);
+}
+
+export async function getReceipt(id: string): Promise<ReceiptRecord | undefined> {
+  return offlineDb.receipts.get(id);
+}
+
+export async function deleteReceipt(id: string): Promise<void> {
+  await offlineDb.receipts.delete(id);
 }
 
 async function markFailed(id: string, message: string): Promise<void> {
@@ -211,4 +246,3 @@ export async function submitSale(payload: SalePayload): Promise<SubmitSaleResult
   await discardQueuedSale(record.id);
   return { status: "rejected", clientRef: record.id, message: outcome.message };
 }
-
