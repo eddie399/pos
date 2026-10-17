@@ -104,7 +104,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-full w-full min-w-0 max-w-full overflow-x-clip">
+    <div className="min-h-full w-full min-w-0 max-w-full">
       {!isOnline ? (
         <p
           role="status"
